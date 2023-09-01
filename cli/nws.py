@@ -1,1 +1,0 @@
-# HW: write script that takes lat, lon; use code we wrote to fetch weather advisories; then prints them out
