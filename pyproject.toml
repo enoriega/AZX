@@ -1,0 +1,74 @@
+# https://packaging.python.org/tutorials/packaging-projects/#creating-pyproject-toml
+# https://www.python.org/dev/peps/pep-0621/
+
+[project]
+name = "azx"
+version = "0.1"
+description = "AZX system from AIRES grant"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE"}
+keywords = ["Python"] # FIXME
+authors = [
+  {name = "enoriega"},
+  {name = "zwellington"} # FIXME # TODO: ANDREW HERE
+]
+classifiers = [
+  "Intended Audience :: Science/Research", # FIXME
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3"
+]
+
+dependencies = [ # FIXME
+  "jupyter==1.0.0"
+]
+
+[project.optional-dependencies]
+test = ["green>=2.5.0", "coverage", "mypy"]
+dev = [
+    "black==21.12b0",
+    "wheel",
+    "mkdocs==1.2.1",
+    "pdoc3==0.9.2",
+    "mkdocs-git-snippet==0.1.1",
+    "mkdocs-git-revision-date-localized-plugin==0.9.2",
+    "mkdocs-git-authors-plugin==0.3.3",
+    "mkdocs-rtd-dropdown==1.0.2",
+    "pre-commit==2.13.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/enoriega/AZX"
+
+# [project.scripts]
+# example-script = "bin/example-script"
+
+[tool.setuptools]
+
+[build-system]
+# These are the assumed default build requirements from pip:
+# https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Example configuration for Black.
+
+# NOTE: you have to use single-quoted strings in TOML for regular expressions.
+# It's the equivalent of r-strings in Python.  Multiline strings are treated as
+# verbose regular expressions by Black.  Use [ ] to denote a significant space
+# character.
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # The following are specific to Black, you probably don't want those.
+  | blib2to3
+  | tests/data
+  | profiling
+)/
+'''
+
