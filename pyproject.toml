@@ -37,6 +37,7 @@ dev = [
     "mkdocs-rtd-dropdown==1.0.2",
     "pre-commit==2.13.0",
 ]
+all = ["azx[dev]", "azx[test]"]
 
 [project.urls]
 "Homepage" = "https://github.com/enoriega/AZX"
