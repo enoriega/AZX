@@ -40,7 +40,7 @@ nav:
     - About:
         #- Release Notes: about/release-notes.md
         - Contributing: contributing.md
-        - License: "License, FIXME"
+        - License: LICENSE
 
 extra_css:
     - css/extra.css

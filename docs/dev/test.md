@@ -8,19 +8,19 @@ Tests are written by [extending the `TestCase` class](https://docs.python.org/3.
 All tests can be run using the following command:
 
 ```bash
-docker run -it -v $PWD:/app "{{cookiecutter.image_organization}}/{{cookiecutter.image_name}}:latest" test-all
+docker run -it -v $PWD:/app "enoriega/azx:latest" test-all
 ```
 
 To run just the unit tests (with code coverage), run the following command:
 
 ```bash
-docker run -it -v $PWD:/app "{{cookiecutter.image_organization}}/{{cookiecutter.image_name}}:latest" green -vvv --run-coverage
+docker run -it -v $PWD:/app "enoriega/azx:latest" green -vvv --run-coverage
 ```
 {% endif %}
 ## Anaconda
 
 ```bash
-source activate {{cookiecutter.repo_name}}
+source activate azx
 # execute the following command from the project root:
 green -vvv .
 ```
@@ -34,13 +34,13 @@ The code makes use of Python type hints.
 To perform type checking, run the following command:
 
 ```bash
-docker run -it -v $PWD:/app "{{cookiecutter.image_organization}}/{{cookiecutter.image_name}}:latest" mypy --ignore-missing-imports --follow-imports=skip --strict-optional .
+docker run -it -v $PWD:/app "enoriega/azx:latest" mypy --ignore-missing-imports --follow-imports=skip --strict-optional .
 ```
 
 ## Anaconda
 
 ```bash
-source activate {{cookiecutter.repo_name}}
+source activate azx
 # execute the following command from the project root:
 mypy --ignore-missing-imports --follow-imports=skip --strict-optional .
 ```

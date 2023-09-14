@@ -23,11 +23,13 @@ pip install git+https://github.com/enoriega/AZX.git
 pre-commit install -t pre-push
 ```
 
+<!--
 ## Docker
 
 ### Requirements
 
 - [Docker](https://docs.docker.com/get-docker/)
+
 
 ### Install 
 
@@ -38,3 +40,4 @@ Docker images are periodically published to [DockerHub](https://hub.docker.com/r
 ```bash
 docker pull "{{cookiecutter.image_organization}}/{{cookiecutter.image_name}}:latest"
 ```
+-->
