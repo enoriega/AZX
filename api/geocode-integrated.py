@@ -1,6 +1,6 @@
 import uvicorn
 import requests
-from .nws import get_alerts
+from nws import get_alerts
 
 from fastapi import FastAPI
 
