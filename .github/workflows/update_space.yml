@@ -25,4 +25,6 @@ jobs:
       run: python -c 'import huggingface_hub; huggingface_hub.login(token="${{ secrets.hf_token }}")'
 
     - name: Deploy to Spaces
-      run: gradio deploy --app-file azx/app/chatbot.py
+      run: |
+        cd azx/app
+        gradio deploy
