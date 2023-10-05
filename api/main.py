@@ -15,13 +15,14 @@ def get_weather_alerts(lat:float,lon:float):
 def geocode_integrated(addresses:list[str]):
     ret = list()
     for address in addresses:
-        coordinates = geocode(address) # need to modify to match geocode function
-        if coordinates == None:
+        coordinates_set = geocode(address) # need to modify to match geocode function
+        if coordinates_set == None:
             return None
         else:
-            lon = coordinates['x']
-            lat = coordinates['y']
-            ret.append({"latitude":lat,"longitude":lon})
+            for entry in coordinates_set:
+                lon = entry['x']
+                lat = entry['y']
+                ret.append({"latitude":lat,"longitude":lon})
     return ret
 
 if __name__ == "__main__":
