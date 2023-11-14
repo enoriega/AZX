@@ -1,3 +1,9 @@
+---
+title: AZX-DEMO
+app_file: azx/app/chatbot.py
+sdk: gradio
+sdk_version: 3.43.2
+---
 Added ---
 title: AZX
 app_file: azx/app/chatbot.py

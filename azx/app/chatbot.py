@@ -15,7 +15,7 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
 
 # Import the rag chain
-rag_chain = build_rag_chain("azx_data.tsv", llm)
+rag_chain = build_rag_chain(os.path.join(os.path.dirname(__file__), "azx_data.tsv"), llm)
 
 @dataclass
 class WeatherAlert:
