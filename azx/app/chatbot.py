@@ -73,7 +73,7 @@ def format_alerts(alerts):
 
 
 def process_alerts(lat, lon):
-    alerts = get_alerts(lat, lon)
+    alerts = get_alerts(float(lat), float(lon))
 
     if alerts is None:
         return "Search unsuccessful. Please try again."
