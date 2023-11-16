@@ -9,6 +9,7 @@ from datetime import datetime
 
 from rag import build_rag_chain
 import os
+from geopy.geocoders import Nominatim
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -27,6 +28,10 @@ class WeatherAlert:
     expires: datetime
 
 
+def resolve_address(address:str):
+    geolocator = Nominatim(user_agent="AZX")
+    location = geolocator.geocode(address)
+    return location
 
 
 
@@ -109,8 +114,14 @@ def respond(message, chat_history):
     chat_history.append((message, bot_message))
     return "", chat_history
 
+def resolve_addres_update_dropdown(address:str):
+    location = resolve_address(address)
+    alerts = update_dropdown(location.latitude, location.longitude)
+    return location.address, location.latitude, location.longitude, alerts
+
 
 def update_dropdown(lat, lon):
+
     # For testing/demonstration purposes
     if lat == "10" and lon == "10":
         alerts = ["Heat Advisory", "Drought Advisory", "Hard Freeze Warning"]
@@ -140,11 +151,18 @@ def update_dropdown(lat, lon):
 with gr.Blocks() as demo:
     with gr.Row():
         with gr.Column():
-            lat = gr.Textbox(label="Latitude", type="text")
-            lon = gr.Textbox(label="Longitude", type="text")
+            with gr.Tab("Address"):
+                address_box = gr.Textbox(label="Address", type="text", elem_id="addr")
+                addr_dropdown_button = gr.Button(value="Submit Address")
+            with gr.Tab("Coordinates"):
+                lat_box = gr.Textbox(label="Latitude", type="text")
+                lon_box = gr.Textbox(label="Longitude", type="text")
+                coord_dropdown_button = gr.Button(value="Submit Coordinates")
 
-            dropdown_button = gr.Button(value="Enter coordinates")
+
             dropdowns = [gr.Dropdown([], label="Complete above form", allow_custom_value=True)]
+            coord_dropdown_button.click(update_dropdown, [lat_box, lon_box], [dropdowns[0]])
+            addr_dropdown_button.click(resolve_addres_update_dropdown, [address_box], outputs=[address_box, lat_box, lon_box, dropdowns[0]])
 
             advice_button = gr.Button(value="Click for Chatbot Advice")
 
@@ -154,9 +172,10 @@ with gr.Blocks() as demo:
 
         msg.submit(respond, [msg, chatbot], [msg, chatbot])
 
-        lat.submit(update_dropdown, [lat, lon], [dropdowns[0]])
-        lon.submit(update_dropdown, [lat, lon], [dropdowns[0]])
-        dropdown_button.click(update_dropdown, [lat, lon], [dropdowns[0]])
+        address_box.submit(resolve_addres_update_dropdown, [address_box], [address_box, lat_box, lon_box, dropdowns[0]])
+        lat_box.submit(update_dropdown, [lat_box, lon_box], [dropdowns[0]])
+        lon_box.submit(update_dropdown, [lat_box, lon_box], [dropdowns[0]])
+
 
         advice_button.click(alert_chatbot, [dropdowns[0], chatbot], [msg, chatbot])
 

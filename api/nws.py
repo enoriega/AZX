@@ -1,4 +1,4 @@
-# HW: write script that takes lat, lon; use code we wrote to fetch weather advisories; then prints them out
+# HW: write script that takes lat, lon_box; use code we wrote to fetch weather advisories; then prints them out
 
 from dataclasses import dataclass
 from datetime import datetime
