@@ -1,1 +1,7 @@
-.[all]
+langchain
+langchainhub
+openai
+unstructured
+chromadb
+tiktoken
+geopy
