@@ -32,8 +32,8 @@ def process_alerts(lat, lon):
 
         for i, alert in enumerate(alerts):
             key = alert.type + ": " + alert.description[:10] + "..."
-            message = alert.description
-            outputs.append((key, message))
+            message = f"{alert.type}: {alert.description}".replace("\n", " ")
+            outputs.append(message)
         # return "\n\n".join(outputs)
         return outputs
 
@@ -60,7 +60,7 @@ def llm_predict(message, history):
 def start_conversation(alert_text, location):
     # bot_message = predict(message, chat_history)
     contextualized_template = PromptTemplate.from_template(
-        "The NWS has issued an alert for {location}. Alert text: ```{alert_text}```?")
+        "The NWS has issued an alert for {location}. Alert text: ```{alert_text}```")
     message = contextualized_template.format(location=location, alert_text=alert_text)
     bot_message = rag_chain.invoke(alert_text)
     chat_history = [(message, bot_message.content)]
@@ -77,9 +77,10 @@ def build_alerts_dropdown(lat, lon):
     alerts = process_alerts(lat, lon)
 
     if isinstance(alerts, list):
-        return gr.Dropdown(alerts,
+        return gr.Dropdown(choices=alerts,
                            label="Select an Alert in your Area",
                            allow_custom_value=True,
+                           type="value",
                            value=alerts[0][0]
                            )
     else:
