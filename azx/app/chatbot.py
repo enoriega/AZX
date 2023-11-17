@@ -1,15 +1,13 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import AIMessage, HumanMessage
-import openai
+import os
+
 import gradio as gr
-from typing import Any, List
-import requests
-from dataclasses import dataclass
-from datetime import datetime
+import openai
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import PromptTemplate
+from langchain.schema import AIMessage, HumanMessage
 
 from rag import build_rag_chain
-import os
-from geopy.geocoders import Nominatim
+from utils import get_nws_alerts, resolve_address, resolve_coordinates
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -18,83 +16,29 @@ llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
 # Import the rag chain
 rag_chain = build_rag_chain(os.path.join(os.path.dirname(__file__), "azx_data.tsv"), llm)
 
-@dataclass
-class WeatherAlert:
-    lat: float
-    lon: float
-    type: str
-    description: str
-    starts: datetime
-    expires: datetime
 
-
-def resolve_address(address:str):
-    geolocator = Nominatim(user_agent="AZX")
-    location = geolocator.geocode(address)
-    return location
-
-
-
-def get_alerts(lat: float, lon: float) -> List[WeatherAlert]:
-    endpoint = "https://api.weather.gov/alerts/active"
-
-    params = {
-        "point": f"{lat},{lon}"
-    }
-
-    response = requests.get(url=endpoint, params=params)
-
-    if response.status_code == 200:
-        # We succeeded
-
-        data = response.json()
-
-        ret = list()
-
-        for feature in data['features']:
-            props = feature['properties']
-
-            alert = WeatherAlert(
-                lat=lat,
-                lon=lon,
-                type=props['event'],
-                description=props['description'],
-                starts=props['onset'],
-                expires=props['expires']
-            )
-
-            ret.append(alert)
-
-        return ret
-
-
-def format_alerts(alerts):
-    outputs = []
-    for i, alert in enumerate(alerts):
-        output = str(alert.type)
-        outputs.append(output)
-    # return "\n\n".join(outputs)
-    return outputs
-
+# Utility functions for the chatbot
 
 def process_alerts(lat, lon):
-    alerts = get_alerts(float(lat), float(lon))
+    """ Fetches alerts from NWS api and builds a string suitable for the LLM chatbot"""
+    outputs = []
+    alerts = get_nws_alerts(float(lat), float(lon))
 
     if alerts is None:
         return "Search unsuccessful. Please try again."
-    if alerts == []:
+    if not alerts:
         return "No alerts currently in this area!"
-    return format_alerts(alerts)
+    else:
+
+        for i, alert in enumerate(alerts):
+            key = alert.type + ": " + alert.description[:10] + "..."
+            message = alert.description
+            outputs.append((key, message))
+        # return "\n\n".join(outputs)
+        return outputs
 
 
-def alert_chatbot(dropdown, chat_history):
-    message = f"The NWS has issued an alert of type {dropdown} in my area. What should I do?"
-    bot_message = predict(message, chat_history)
-    chat_history.append((message, bot_message))
-    return "", chat_history
-
-
-def predict(message, history):
+def llm_predict(message, history):
     history_langchain_format = []
     for human, ai in history:
         history_langchain_format.append(HumanMessage(content=human))
@@ -109,44 +53,71 @@ def predict(message, history):
         return gpt_response.content
 
 
-def respond(message, chat_history):
-    bot_message = predict(message, chat_history)
+##############################################
+
+# Event Handlers
+
+def start_conversation(alert_text, location):
+    # bot_message = predict(message, chat_history)
+    contextualized_template = PromptTemplate.from_template(
+        "The NWS has issued an alert for {location}. Alert text: ```{alert_text}```?")
+    message = contextualized_template.format(location=location, alert_text=alert_text)
+    bot_message = rag_chain.invoke(alert_text)
+    chat_history = [(message, bot_message.content)]
+    return "", chat_history
+
+
+def follow_up_conversation(message, chat_history):
+    bot_message = llm_predict(message, chat_history)
     chat_history.append((message, bot_message))
     return "", chat_history
 
-def resolve_addres_update_dropdown(address:str):
-    location = resolve_address(address)
-    alerts = update_dropdown(location.latitude, location.longitude)
-    return location.address, location.latitude, location.longitude, alerts
 
-
-def update_dropdown(lat, lon):
-
-    # For testing/demonstration purposes
-    if lat == "10" and lon == "10":
-        alerts = ["Heat Advisory", "Drought Advisory", "Hard Freeze Warning"]
-        return gr.Dropdown(alerts,
-                           label="Select an Alert in your Area",
-                           allow_custom_value=True,
-                           value=alerts[0]
-                           )
-
+def build_alerts_dropdown(lat, lon):
     alerts = process_alerts(lat, lon)
 
     if isinstance(alerts, list):
         return gr.Dropdown(alerts,
                            label="Select an Alert in your Area",
                            allow_custom_value=True,
-                           value=alerts[0]
+                           value=alerts[0][0]
+                           )
+    else:
+        none_found = ["NO ALERT FOUND"]
+        return gr.Dropdown(none_found,
+                           label="Alert not found. Try different coordinates",
+                           allow_custom_value=True,
+                           value=none_found[0]
                            )
 
-    none_found = ["NO ALERT FOUND"]
-    return gr.Dropdown(none_found,
-                       label="Alert not found. Try different coordinates",
-                       allow_custom_value=True,
-                       value=none_found[0]
-                       )
 
+def address_box_handler(address: str):
+    # Resolve the coordinates of the chosen address
+    location = resolve_address(address)
+    # Get the dropdown elements from the chosen location
+    alerts = build_alerts_dropdown(location.latitude, location.longitude)
+    # Update the  address, coordinates and drop down items
+    return location.address, location.latitude, location.longitude, alerts
+
+
+def coordinates_boxs_handler(lat, lon):
+    """ Takes coordinates, fetches alerts and builds a dropdown with the alerts in from the dropdown menu"""
+    location = resolve_coordinates(lat, lon)
+    # For testing/demonstration purposes
+    if lat == "10" and lon == "10":
+        alerts = [("Heat Advisory", "Heat Advisory"), ("Drought Advisory", "Drought Advisory"),
+                  ("Hard Freeze Warning", "Hard Freeze Warning")]
+        return gr.Dropdown(alerts,
+                           label="Select an Alert in your Area",
+                           allow_custom_value=True,
+                           value=alerts[0][0]
+                           ), location.address
+    ###################################
+
+    return build_alerts_dropdown(lat, lon), location.address
+
+
+# UI Layout begins here
 
 with gr.Blocks() as demo:
     with gr.Row():
@@ -159,25 +130,24 @@ with gr.Blocks() as demo:
                 lon_box = gr.Textbox(label="Longitude", type="text")
                 coord_dropdown_button = gr.Button(value="Submit Coordinates")
 
-
-            dropdowns = [gr.Dropdown([], label="Complete above form", allow_custom_value=True)]
-            coord_dropdown_button.click(update_dropdown, [lat_box, lon_box], [dropdowns[0]])
-            addr_dropdown_button.click(resolve_addres_update_dropdown, [address_box], outputs=[address_box, lat_box, lon_box, dropdowns[0]])
+            dropdown = gr.Dropdown([], label="Complete above form", allow_custom_value=True)
+            coord_dropdown_button.click(coordinates_boxs_handler, [lat_box, lon_box], [dropdown, address_box])
+            addr_dropdown_button.click(address_box_handler, [address_box],
+                                       outputs=[address_box, lat_box, lon_box, dropdown])
 
             advice_button = gr.Button(value="Click for Chatbot Advice")
 
         with gr.Column():
             chatbot = gr.Chatbot()
-            msg = gr.Textbox()
+            msg = gr.Textbox(interactive=True)
 
-        msg.submit(respond, [msg, chatbot], [msg, chatbot])
+        msg.submit(follow_up_conversation, [msg, chatbot], [msg, chatbot])
 
-        address_box.submit(resolve_addres_update_dropdown, [address_box], [address_box, lat_box, lon_box, dropdowns[0]])
-        lat_box.submit(update_dropdown, [lat_box, lon_box], [dropdowns[0]])
-        lon_box.submit(update_dropdown, [lat_box, lon_box], [dropdowns[0]])
+        address_box.submit(address_box_handler, [address_box], [address_box, lat_box, lon_box, dropdown])
+        lat_box.submit(coordinates_boxs_handler, [lat_box, lon_box], [dropdown, address_box])
+        lon_box.submit(coordinates_boxs_handler, [lat_box, lon_box], [dropdown, address_box])
 
-
-        advice_button.click(alert_chatbot, [dropdowns[0], chatbot], [msg, chatbot])
+        advice_button.click(start_conversation, [dropdown, address_box], [msg, chatbot])
 
 if __name__ == "__main__":
     demo.launch()
