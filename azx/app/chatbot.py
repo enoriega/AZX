@@ -33,7 +33,7 @@ def process_alerts(lat, lon):
         for i, alert in enumerate(alerts):
             key = alert.type + ": " + alert.description[:10] + "..."
             message = f"{alert.type}: {alert.description}".replace("\n", " ")
-            outputs.append(message)
+            outputs.append((key, message))
         # return "\n\n".join(outputs)
         return outputs
 
