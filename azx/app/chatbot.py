@@ -141,8 +141,11 @@ with gr.Blocks() as demo:
         with gr.Column():
             chatbot = gr.Chatbot()
             msg = gr.Textbox(interactive=True)
+            submit_msg = gr.Button("Submit Message")
+            clear = gr.ClearButton([msg, chatbot])
 
         msg.submit(follow_up_conversation, [msg, chatbot], [msg, chatbot])
+        submit_msg.click(follow_up_conversation, [msg, chatbot], [msg, chatbot])
 
         address_box.submit(address_box_handler, [address_box], [address_box, lat_box, lon_box, dropdown])
         lat_box.submit(coordinates_boxs_handler, [lat_box, lon_box], [dropdown, address_box])
