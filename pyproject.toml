@@ -45,6 +45,8 @@ dev = [
     "chromadb",
     "tiktoken",
     "geopy",
+    "fire",
+    "langchain-openai"
 ]
 all = ["azx[dev]", "azx[test]"]
 
