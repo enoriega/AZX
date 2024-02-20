@@ -102,7 +102,7 @@ def main():
         is_separator_regex=False,
     )
     chroma_client = chromadb.PersistentClient(path=output_dir)
-    collection = chroma_client.create_collection(name="azx")
+    collection = chroma_client.create_collection(name="langchain")
 
     for df in dfs:
         process_df(df, text_splitter, collection)
