@@ -2,19 +2,22 @@ import os
 
 import gradio as gr
 import openai
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
+
 
 from rag import build_rag_chain
 from utils import get_nws_alerts, resolve_address, resolve_coordinates
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
+openai.organization = os.environ.get("OPENAI_ORGANIZATION")
 
 llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
 
 # Import the rag chain
-rag_chain = build_rag_chain(os.path.join(os.path.dirname(__file__), "azx_data.tsv"), llm)
+# rag_chain = build_rag_chain(os.path.join(os.path.dirname(__file__), "azx_data.tsv"), llm)
+rag_chain = build_rag_chain("/Users/enoriega/github/AZX/scripts/resources", llm)
 
 
 # Utility functions for the chatbot
@@ -62,7 +65,9 @@ def start_conversation(alert_text, location):
     contextualized_template = PromptTemplate.from_template(
         "The NWS has issued an alert for {location}. Alert text: ```{alert_text}```")
     message = contextualized_template.format(location=location, alert_text=alert_text)
-    bot_message = rag_chain.invoke(alert_text)
+    ret = rag_chain.invoke(alert_text)
+    print(ret['debug'])
+    bot_message = ret['rag']
     chat_history = [(message, bot_message.content)]
     return "", chat_history
 

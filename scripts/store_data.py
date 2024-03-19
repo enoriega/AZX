@@ -2,33 +2,39 @@ import pandas as pd
 import chromadb
 import fire
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from tqdm import tqdm
+
 
 def get_args(input_dir: str, output_dir: str) -> tuple:
     return input_dir, output_dir
 
-def get_dfs(dir: str) -> list:
-    return list(
+
+def get_dfs(input_file: str) -> list:
+    sheet_names = [
+        "Diseases, symptoms, treatments",
+        "Health hazards",
+        "Adverse weather events"
+    ]
+    return zip(sheet_names, list(
         pd.read_excel(
-            dir,
-            sheet_name=[
-                "Diseases, symptoms, treatments", 
-                "Health hazards",
-                "Adverse weather events"
-            ]
+            input_file,
+            sheet_name=sheet_names
         ).values()
-    )
+    ))
+
 
 def get_dicts(df: pd.DataFrame) -> list:
     dicts = []
 
     for i in df.index:
         dictionary = {}
-        
+
         for col in df.loc[i].index:
             dictionary[col] = df.loc[i, col]
         dicts.append(dictionary)
     return dicts
-    
+
+
 def get_text(dictionary: dict) -> str:
     if "Diseases" in dictionary:
         return dictionary["Diseases"] + "\n" + dictionary["Text content"]
@@ -38,18 +44,19 @@ def get_text(dictionary: dict) -> str:
 
     else:
         text = dictionary["Disease/health event"]
-    
+
         if isinstance(dictionary["Symptoms"], str):
             text += "\n" + dictionary["Symptoms"]
-        
+
         if isinstance(dictionary["Treatment(s)"], str):
             text += "\n" + dictionary["Treatment(s)"]
 
         return text
 
+
 def get_metadatas(dictionary: dict) -> dict:
     metadatas = dictionary.copy()
-    
+
     if "Diseases" in dictionary:
         metadatas.pop("Diseases")
         metadatas.pop("Text content")
@@ -70,14 +77,16 @@ def get_metadatas(dictionary: dict) -> dict:
 
     return metadatas
 
+
 def process_df(
-    df: pd.DataFrame,
-    text_splitter: RecursiveCharacterTextSplitter,
-    collection: chromadb.api.models.Collection.Collection
+        name: str,
+        df: pd.DataFrame,
+        text_splitter: RecursiveCharacterTextSplitter,
+        collection: chromadb.api.models.Collection.Collection
 ) -> None:
     dicts = get_dicts(df)
 
-    for i, dictionary in enumerate(dicts):
+    for i, dictionary in tqdm(enumerate(dicts), desc=f"Processing {name}"):
         text = get_text(dictionary)
         metadatas = get_metadatas(dictionary)
 
@@ -85,9 +94,9 @@ def process_df(
         contents = [doc.page_content for doc in documents]
         for j, content in enumerate(contents):
             collection.add(
-                documents=content, 
+                documents=content,
                 metadatas=metadatas,
-                ids=["id" + str(i) + "-" + str(j)]
+                ids=[f"id{name}-{i}-{j}"]
             )
 
 def main():
