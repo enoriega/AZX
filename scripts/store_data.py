@@ -99,7 +99,6 @@ def process_df(
                 ids=[f"id{name}-{i}-{j}"]
             )
 
-
 def main():
     input_dir, output_dir = fire.Fire(get_args)
     dfs = get_dfs(input_dir)
@@ -111,12 +110,12 @@ def main():
         length_function=len,
         is_separator_regex=False,
     )
-    chroma_client = chromadb.PersistentClient(path=output_dir)
-    collection = chroma_client.create_collection(name="langchain")
+    collection_names = ["disease", "health", "weather"]
 
-    for name, df in dfs:
-        process_df(name, df, text_splitter, collection)
-
+    for df, name in zip(dfs, collection_names):
+        chroma_client = chromadb.PersistentClient(path=(output_dir + "/" + name + "_db"))
+        collection = chroma_client.create_collection(name="langchain")
+        process_df(df, text_splitter, collection)
 
 if __name__ == "__main__":
     main()
