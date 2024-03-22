@@ -12,12 +12,13 @@ from utils import get_nws_alerts, resolve_address, resolve_coordinates
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 openai.organization = os.environ.get("OPENAI_ORGANIZATION")
+vectordb_path = os.environ.get("VECTORDB_PATH")
 
 llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
 
 # Import the rag chain
 # rag_chain = build_rag_chain(os.path.join(os.path.dirname(__file__), "azx_data.tsv"), llm)
-rag_chain = build_rag_chain("/Users/enoriega/github/AZX/scripts/resources", llm)
+rag_chain = build_rag_chain(vectordb_path, llm)
 
 
 # Utility functions for the chatbot
