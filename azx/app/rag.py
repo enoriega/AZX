@@ -43,12 +43,13 @@ def build_rag_chain(path: str, llm):
     # vectorstore = Chroma.from_documents(documents=splits, embedding=OpenAIEmbeddings())
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = Chroma(persist_directory=path, embedding_function=embeddings)
-    weatherdb = vectorstore.as_retriever(search_kwargs={"k": 10})
+    completedb = vectorstore.as_retriever(search_kwargs={"k": 10})
+    weatherdb = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": {"type": "weather"}})
     healthdb = vectorstore.as_retriever(search_kwargs={"k": 10})
     diseasedb = vectorstore.as_retriever(search_kwargs={"k": 10})
+    shelterdb = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": {"type": "shelter"}})
 
     def choose_retriever(info):
-        print(info)
         topic = info['topic'].content.lower().strip()
         if topic == "weather":
             return RetrieverWrapper(weatherdb)
@@ -56,11 +57,13 @@ def build_rag_chain(path: str, llm):
             return RetrieverWrapper(healthdb)
         elif topic == "disease":
             return RetrieverWrapper(diseasedb)
+        elif topic == "shelter":
+            return RetrieverWrapper(shelterdb)
         else:
-            return RetrieverWrapper(weatherdb)
+            return RetrieverWrapper(completedb)
 
     topic_classifier = (PromptTemplate.from_template(
-        """Given the user question below, classify it as either being about `Health`, `Weather`, `Disease`, or `Other`.
+        """Given the user question below, classify it as either being about `Health`, `Weather`, `Disease`, `Shelter` or `Other`.
             Do not respond with more than one word.
 
             <question>
@@ -91,26 +94,10 @@ def build_rag_chain(path: str, llm):
 if __name__ == "__main__":
     llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
     # rag_chain = build_rag_chain("azx_data.tsv", llm)
-    chain = build_rag_chain("/Users/enoriega/github/AZX/scripts/resources", llm)
+    chain = build_rag_chain("/Users/enoriega/github/AZX/scripts/resources2", llm)
 
     # x = rag_chain.invoke("What should I do in the presence of poor air quality?")
 
-    x = chain.invoke("Where can I seek shelter from rain?")
-    print(x)
+    # x = chain.invoke("I feel fever, chills and headache. What could I have?")
+    # print(x)
 
-    from fastapi import FastAPI
-    from langserve import add_routes
-    import uvicorn
-
-    app = FastAPI(
-        title="LangChain Server",
-        version="1.0",
-        description="A simple api server using Langchain's Runnable interfaces",
-    )
-
-    add_routes(
-        app,
-        chain
-    )
-
-    uvicorn.run(app, host="localhost", port=8000)
