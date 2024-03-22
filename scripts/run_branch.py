@@ -24,14 +24,13 @@ llm = ChatOpenAI(
 chain = (
     PromptTemplate.from_template(
         """Given the user question below, classify it as either being about `Health`, `Weather`, `Disease`, or `Other`.
+            Do not respond with more than one word.
 
-Do not respond with more than one word.
-
-<question>
-{question}
-</question>
-
-Classification:"""
+        <question>
+        {question}
+        </question>
+        
+        Classification:"""
     )
     | llm
     | StrOutputParser()

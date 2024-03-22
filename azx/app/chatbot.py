@@ -66,8 +66,8 @@ def start_conversation(alert_text, location):
         "The NWS has issued an alert for {location}. Alert text: ```{alert_text}```")
     message = contextualized_template.format(location=location, alert_text=alert_text)
     ret = rag_chain.invoke(alert_text)
-    print(ret['debug'])
-    bot_message = ret['rag']
+    print(ret)
+    bot_message = ret
     chat_history = [(message, bot_message.content)]
     return "", chat_history
 

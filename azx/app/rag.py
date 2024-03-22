@@ -1,22 +1,28 @@
 import csv
+from typing import Optional, Any
 
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.schema.runnable import RunnablePassthrough, RunnableParallel
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnableLambda, Runnable, RunnableConfig
+from langchain_core.runnables.utils import Input, Output
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 
 
-def load_data(path: str):
-    with open(path) as f:
-        reader = csv.DictReader(f, delimiter='\t')
-        ret = [Document(page_content=r['Text content']) for r in reader]
+class RetrieverWrapper(Runnable):
+    def __init__(self, retriever):
+        self.retriever = retriever
 
-    return ret
+    def invoke(self, input: Input, config: Optional[RunnableConfig] = None) -> Output:
+        return self.retriever.invoke(input=input['query'], config=config)
+
+    async def ainvoke(self, input: Input, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Output:
+        return await self.retriever.ainvoke(input=input['query'], config=config, **kwargs)
+
 
 def parse_docs(documents):
     ret = list()
@@ -37,16 +43,43 @@ def build_rag_chain(path: str, llm):
     # vectorstore = Chroma.from_documents(documents=splits, embedding=OpenAIEmbeddings())
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = Chroma(persist_directory=path, embedding_function=embeddings)
-    # rag_prompt = hub.pull("rlm/rag-prompt")
+    weatherdb = vectorstore.as_retriever(search_kwargs={"k": 10})
+    healthdb = vectorstore.as_retriever(search_kwargs={"k": 10})
+    diseasedb = vectorstore.as_retriever(search_kwargs={"k": 10})
+
+    def choose_retriever(info):
+        print(info)
+        topic = info['topic'].content.lower().strip()
+        if topic == "weather":
+            return RetrieverWrapper(weatherdb)
+        elif topic == "health":
+            return RetrieverWrapper(healthdb)
+        elif topic == "disease":
+            return RetrieverWrapper(diseasedb)
+        else:
+            return RetrieverWrapper(weatherdb)
+
+    topic_classifier = (PromptTemplate.from_template(
+        """Given the user question below, classify it as either being about `Health`, `Weather`, `Disease`, or `Other`.
+            Do not respond with more than one word.
+
+            <question>
+                {question}
+            </question>
+
+        Classification:""") | llm)
+
     rag_prompt = PromptTemplate.from_template(
         "You are a public health advocate. Use the following documents to answer the question. If "
         "you don't know the answer, just say that you don't know. Enumerate the actionable items as clear and concise. For each action item, if there is a relevant document that includes a URL, include the URL for reference. "
         "bullets in a list. Write a follow up sentence that briefly elaborates the main sentence in each."
         "item.\nQuestion: {question} \nContext: {context} \nAnswer:")
-    retriever = vectorstore.as_retriever()
 
     rag_chain = ({
-                     "context": retriever | RunnableLambda(parse_docs),
+                     "context": {
+                                    "topic": {"question": RunnablePassthrough()} | topic_classifier,
+                                    "query": RunnablePassthrough()
+                                } | RunnableLambda(choose_retriever) | RunnableLambda(parse_docs),
                      "question": RunnablePassthrough()
                  }
 
@@ -61,6 +94,9 @@ if __name__ == "__main__":
     chain = build_rag_chain("/Users/enoriega/github/AZX/scripts/resources", llm)
 
     # x = rag_chain.invoke("What should I do in the presence of poor air quality?")
+
+    x = chain.invoke("Where can I seek shelter from rain?")
+    print(x)
 
     from fastapi import FastAPI
     from langserve import add_routes
