@@ -49,16 +49,16 @@ def build_rag_chain(path: str, llm):
     print(vectorstore.get())
     completedb = vectorstore.as_retriever(search_kwargs={"k": 10})
     weatherdb = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": {"type": "weather"}})
-    healthdb = vectorstore.as_retriever(search_kwargs={"k": 10})
-    diseasedb = vectorstore.as_retriever(search_kwargs={"k": 10})
+    hazardsdb = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": {"type": "hazards"}})
+    diseasedb = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": {"type": "disease"}})
     shelterdb = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": {"type": "shelter"}})
 
     def choose_retriever(info):
         topic = info['topic'].content.lower().strip()
         if topic == "weather":
             return RetrieverWrapper(weatherdb)
-        elif topic == "health":
-            return RetrieverWrapper(healthdb)
+        elif topic == "hazards":
+            return RetrieverWrapper(hazardsdb)
         elif topic == "disease":
             return RetrieverWrapper(diseasedb)
         elif topic == "shelter":
@@ -67,7 +67,7 @@ def build_rag_chain(path: str, llm):
             return RetrieverWrapper(completedb)
 
     topic_classifier = (PromptTemplate.from_template(
-        """Given the user question below, classify it as either being about `Health`, `Weather`, `Disease`, `Shelter` or `Other`.
+        """Given the user question below, classify it as either being about `Hazards`, `Weather`, `Disease`, `Shelter` or `Other`.
             Do not respond with more than one word.
 
             <question>
