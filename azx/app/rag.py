@@ -41,6 +41,9 @@ def build_rag_chain(path: str, llm):
     # text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     # splits = text_splitter.split_documents(documents)
     # vectorstore = Chroma.from_documents(documents=splits, embedding=OpenAIEmbeddings())
+    if not path:
+        raise ValueError("Vector store path not provided")
+
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = Chroma(persist_directory=path, embedding_function=embeddings)
     completedb = vectorstore.as_retriever(search_kwargs={"k": 10})
@@ -94,7 +97,7 @@ def build_rag_chain(path: str, llm):
 if __name__ == "__main__":
     llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
     # rag_chain = build_rag_chain("azx_data.tsv", llm)
-    chain = build_rag_chain("/Users/enoriega/github/AZX/scripts/resources2", llm)
+    chain = build_rag_chain("/scripts/resources", llm)
 
     # x = rag_chain.invoke("What should I do in the presence of poor air quality?")
 
