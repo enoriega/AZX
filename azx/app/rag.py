@@ -46,6 +46,7 @@ def build_rag_chain(path: str, llm):
 
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = Chroma(persist_directory=path, embedding_function=embeddings)
+    print(vectorstore.get())
     completedb = vectorstore.as_retriever(search_kwargs={"k": 10})
     weatherdb = vectorstore.as_retriever(search_kwargs={"k": 10, "filter": {"type": "weather"}})
     healthdb = vectorstore.as_retriever(search_kwargs={"k": 10})

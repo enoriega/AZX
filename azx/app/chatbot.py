@@ -20,6 +20,9 @@ llm = ChatOpenAI(temperature=0, model='gpt-4-1106-preview')
 # rag_chain = build_rag_chain(os.path.join(os.path.dirname(__file__), "azx_data.tsv"), llm)
 rag_chain = build_rag_chain(vectordb_path, llm)
 
+print(os.getcwd())
+print(vectordb_path)
+
 
 # Utility functions for the chatbot
 
